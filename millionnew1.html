@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Who Wants to Be a Millionaire - Family Edition</title>
+<style>
+  :root {
+    --bg-dark: #06091e;
+    --bg-panel: #0d153a;
+    --border-gold: #f5b942;
+    --accent-blue: #1b3b8c;
+    --accent-hover: #2952b8;
+    --correct-green: #16a34a;
+    --wrong-red: #dc2626;
+    --text-light: #f8fafc;
+    --text-muted: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+  body { background: radial-gradient(circle at top, #132259, var(--bg-dark)); color: var(--text-light); min-height: 100vh; display: flex; flex-direction: column; }
+  header { background: rgba(6, 9, 30, 0.9); border-bottom: 2px solid var(--border-gold); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .title-area h1 { font-size: 1.4rem; color: var(--border-gold); letter-spacing: 1px; text-transform: uppercase; }
+  .controls { display: flex; gap: 10px; align-items: center; }
+  button.ctrl-btn { background: var(--accent-blue); color: white; border: 1px solid var(--border-gold); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: 0.2s; }
+  button.ctrl-btn:hover { background: var(--accent-hover); }
+  .scoreboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 12px 20px; background: rgba(13, 21, 58, 0.8); border-bottom: 1px solid #283a7a; }
+  .player-card { background: #0a102e; border: 2px solid #283a7a; border-radius: 10px; padding: 10px 14px; transition: 0.3s; position: relative; }
+  .player-card.active { border-color: var(--border-gold); box-shadow: 0 0 15px rgba(245, 185, 66, 0.4); background: #142261; }
+  .hot-badge { display: none; position: absolute; top: -10px; right: 12px; background: var(--border-gold); color: #000; font-size: 0.7rem; font-weight: 900; padding: 2px 8px; border-radius: 12px; text-transform: uppercase; }
+  .player-card.active .hot-badge { display: inline-block; }
+  .p-name { font-size: 1.1rem; font-weight: bold; color: #fff; }
+  .p-stats { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; }
+  .p-money { color: #4ade80; font-weight: bold; }
+  .p-safe { color: var(--border-gold); }
+  main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; max-width: 1200px; width: 100%; margin: 0 auto; }
+  .ff-box { background: var(--bg-panel); border: 2px solid var(--border-gold); border-radius: 14px; padding: 25px; max-width: 700px; width: 100%; text-align: center; }
+  .ff-timer { font-size: 2rem; font-weight: bold; color: var(--border-gold); margin: 10px 0; }
+  .ff-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
+  .ff-btn { background: var(--accent-blue); border: 2px solid #4a6cd4; color: white; padding: 14px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+  .ff-btn:hover:not(:disabled) { background: var(--accent-hover); }
+  .ff-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .ff-seq { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; min-height: 40px; flex-wrap: wrap; }
+  .seq-pill { background: var(--border-gold); color: #000; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; }
+  .game-layout { display: grid; grid-template-columns: 1fr 260px; gap: 20px; width: 100%; align-items: start; }
+  @media (max-width: 850px) { .game-layout { grid-template-columns: 1fr; } }
+  .play-area { background: var(--bg-panel); border: 2px solid var(--border-gold); border-radius: 14px; padding: 24px; position: relative; }
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .q-topic { background: #1e3a8a; color: #93c5fd; padding: 5px 12px; border-radius: 15px; font-size: 0.85rem; font-weight: bold; }
+  .shot-clock { font-size: 1.6rem; font-weight: 900; background: #06091e; border: 2px solid var(--border-gold); padding: 6px 16px; border-radius: 30px; color: #fff; }
+  .shot-clock.danger { border-color: var(--wrong-red); color: #f87171; animation: pulse 0.6s infinite alternate; }
+  @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.08); } }
+  .lifelines { display: flex; gap: 10px; margin-bottom: 18px; justify-content: center; flex-wrap: wrap; }
+  .life-btn { background: #172554; border: 2px solid var(--border-gold); color: var(--border-gold); padding: 8px 14px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.85rem; transition: 0.2s; }
+  .life-btn:hover:not(:disabled) { background: var(--border-gold); color: #000; }
+  .life-btn:disabled { opacity: 0.3; text-decoration: line-through; cursor: not-allowed; }
+  .question-box { background: #070c26; border: 2px solid #3b82f6; border-radius: 12px; padding: 22px; font-size: 1.3rem; font-weight: bold; text-align: center; margin-bottom: 20px; min-height: 100px; display: flex; align-items: center; justify-content: center; }
+  .answers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 600px) { .answers-grid { grid-template-columns: 1fr; } }
+  .ans-btn { background: linear-gradient(180deg, #172e73, #0e1d4d); border: 2px solid #4f75e3; color: white; padding: 16px 18px; border-radius: 30px; font-size: 1.05rem; font-weight: bold; text-align: left; cursor: pointer; transition: 0.2s; display: flex; gap: 10px; align-items: center; }
+  .ans-btn:hover:not(:disabled) { border-color: var(--border-gold); background: #2242a3; }
+  .ans-btn span.letter { color: var(--border-gold); font-weight: 900; }
+  .ans-btn.correct { background: var(--correct-green) !important; border-color: #86efac !important; color: #fff; }
+  .ans-btn.wrong { background: var(--wrong-red) !important; border-color: #fca5a5 !important; color: #fff; }
+  .ans-btn.hidden-opt { visibility: hidden; }
+  .ladder { background: var(--bg-panel); border: 2px solid var(--border-gold); border-radius: 14px; padding: 14px; display: flex; flex-direction: column-reverse; gap: 4px; }
+  .rung { display: flex; justify-content: space-between; padding: 5px 10px; border-radius: 6px; font-size: 0.9rem; font-weight: bold; color: var(--border-gold); }
+  .rung.safe { color: #ffffff; background: rgba(255, 255, 255, 0.12); }
+  .rung.current { background: var(--border-gold); color: #000; transform: scale(1.03); }
+  .rung.passed { color: #4ade80; }
+  .overlay { position: fixed; inset: 0; background: rgba(4, 6, 20, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50; padding: 20px; text-align: center; }
+  .modal-card { background: var(--bg-panel); border: 3px solid var(--border-gold); border-radius: 16px; padding: 28px; max-width: 550px; width: 100%; }
+  .hidden { display: none !important; }
+  .poll-bars { display: flex; justify-content: space-around; align-items: flex-end; height: 150px; margin: 20px 0; padding-top: 20px; border-bottom: 2px solid #475569; }
+  .bar-col { display: flex; flex-direction: column; align-items: center; width: 50px; }
+  .bar-fill { width: 36px; background: var(--border-gold); border-radius: 6px 6px 0 0; transition: height 0.5s; }
+  .toast-msg { margin-top: 15px; font-size: 1.1rem; font-weight: bold; min-height: 28px; color: var(--border-gold); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title-area">
+    <h1>💎 Who Wants to Be a Millionaire: Family Edition</h1>
+  </div>
+  <div class="controls">
+    <button class="ctrl-btn" id="pauseBtn" onclick="togglePause()">⏸ Pause</button>
+    <button class="ctrl-btn" id="muteBtn" onclick="toggleMute()">🔊 Sound On</button>
+    <button class="ctrl-btn" onclick="showStandings()">🏆 Standings</button>
+  </div>
+</header>
+
+<div class="scoreboard" id="scoreboard"></div>
+
+<main>
+  <div id="ffView" class="ff-box">
+    <h2 style="color: var(--border-gold); margin-bottom: 6px;">⚡ FASTEST FINGER FIRST ⚡</h2>
+    <p id="ffPlayerTitle" style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px;"></p>
+    <p id="ffPrompt" style="font-size: 1.05rem; color: #cbd5e1;"></p>
+    <div class="ff-timer" id="ffTimer">0.0s</div>
+    <div class="ff-seq" id="ffSeq"></div>
+    <div class="ff-options" id="ffOptions"></div>
+    <button class="ctrl-btn" onclick="resetFFChoice()">Clear Order</button>
+  </div>
+
+  <div id="hotSeatView" class="game-layout hidden">
+    <div class="play-area">
+      <div class="top-bar">
+        <span class="q-topic" id="qTopic">Category</span>
+        <div class="shot-clock" id="shotClock">20s</div>
+      </div>
+
+      <div class="lifelines">
+        <button class="life-btn" id="life5050" onclick="use5050()">50:50</button>
+        <button class="life-btn" id="lifeSibling" onclick="useSibling()">🗣️ Ask a Sibling</button>
+        <button class="life-btn" id="lifePoll" onclick="usePoll()">📊 Poll the Family</button>
+      </div>
+
+      <div class="question-box" id="questionText">Loading question...</div>
+      <div class="answers-grid" id="answersGrid"></div>
+      <div class="toast-msg" id="feedbackMsg"></div>
+    </div>
+
+    <div class="ladder" id="prizeLadder"></div>
+  </div>
+</main>
+
+<div id="pauseOverlay" class="overlay hidden">
+  <div class="modal-card">
+    <h2 style="color: var(--border-gold); font-size: 2rem; margin-bottom: 12px;">⏸ GAME PAUSED</h2>
+    <p style="color: #cbd5e1; margin-bottom: 20px;">Question and timer are shielded while on break.</p>
+    <button class="ctrl-btn" style="font-size: 1.1rem; padding: 12px 24px;" onclick="togglePause()">▶ Resume Game</button>
+  </div>
+</div>
+
+<div id="infoModal" class="overlay hidden">
+  <div class="modal-card">
+    <h2 id="modalTitle" style="color: var(--border-gold); margin-bottom: 12px;"></h2>
+    <div id="modalBody" style="margin-bottom: 20px; font-size: 1.05rem;"></div>
+    <button class="ctrl-btn" onclick="closeModal()">Continue</button>
+  </div>
+</div>
+
+<script>
+  {
+    id: 'kamdyn', name: 'Kamdyn', age: 12,
+    rung: 0, safeRung: -1, bestCash: "$0", correctCount: 0,
+    lifelines: { f5050: true, sibling: true, poll: true },
+    usedIds: new Array(),
+    ffPuzzle: {
+      prompt: "Put these Minecraft progression steps in standard survival order:",
+      items: new Array("Punch a tree for wood", "Mine iron ore", "Enter The Nether", "Defeat the Ender Dragon"),
+      correctOrder: new Array("Punch a tree for wood", "Mine iron ore", "Enter The Nether", "Defeat the Ender Dragon")
+    },
+    tiers: {
+      easy: new Array(
+        { id: "m_e1", cat: "Mighty Morphin Power Rangers", q: "What catchphrase do the Mighty Morphin Power Rangers shout to transform?", opts: new Array("Ranger Power Activate!", "It's Morphin Time!", "Go Go Rangers!", "Zord Up!"), ans: 1 },
+        { id: "m_e2", cat: "KPop Demon Hunters", q: "What is the name of the superstar girl group that secretly hunts demons?", opts: new Array("HUNTR/X", "SAJA", "BLACKPINK", "VIXEN"), ans: 0 },
+        { id: "m_e3", cat: "Soccer", q: "How many players from ONE team are on the field during a standard soccer match?", opts: new Array("9", "10", "11", "12"), ans: 2 },
+        { id: "m_e4", cat: "Minecraft", q: "Which green mob explodes silently if it sneaks up behind you?", opts: new Array("Skeleton", "Zombie", "Creeper", "Enderman"), ans: 2 },
+        { id: "m_e5", cat: "Mighty Morphin Power Rangers", q: "Who is the floating alien mentor inside the Command Center who guides the Rangers?", opts: new Array("Alpha 5", "Zordon", "Lord Zedd", "Bulk"), ans: 1 },
+        { id: "m_e6", cat: "Misc Trivia", q: "How many continents are there on Earth?", opts: new Array("5", "6", "7", "8"), ans: 2 },
+        { id: "m_e7", cat: "Kid Riddle", q: "What has cities, but no houses; mountains, but no trees; and water, but no fish?", opts: new Array("A map", "A dream", "A painting", "A desert"), ans: 0 },
+        { id: "m_e8", cat: "KPop Demon Hunters", q: "Who are the three members of HUNTR/X?", opts: new Array("Rumi, Mira, and Zoey", "Jinu, Abby, and Mystery", "Lisa, Jennie, and Rose", "Luna, Nova, and Aria"), ans: 0 },
+        { id: "m_e9", cat: "Soccer", q: "What card does a referee show to immediately eject a player from the game?", opts: new Array("Yellow Card", "Blue Card", "Red Card", "Black Card"), ans: 2 },
+        { id: "m_e10", cat: "Misc Trivia", q: "What gas do plants absorb from the air to make food?", opts: new Array("Oxygen", "Carbon Dioxide", "Nitrogen", "Helium"), ans: 1 }
+      ),
+      medium: new Array(
+        { id: "m_m1", cat: "Mighty Morphin Power Rangers", q: "Which dinosaur Dinozord belongs to Jason, the original Red Ranger?", opts: new Array("Triceratops", "Tyrannosaurus", "Mastodon", "Sabertooth Tiger"), ans: 1 },
+        { id: "m_m2", cat: "KPop Demon Hunters", q: "What is the magical barrier called that HUNTR/X strengthens with their music?", opts: new Array("The Honmoon", "The Shield", "The Prism", "The Astral Wall"), ans: 0 },
+        { id: "m_m3", cat: "Brain Teaser Math", q: "A bat and a ball cost $1.10 total. The bat costs $1.00 more than the ball. How much is the ball?", opts: new Array("$0.10", "$0.05", "$0.01", "$0.15"), ans: 1 },
+        { id: "m_m4", cat: "Mighty Morphin Power Rangers", q: "What weapon does Tommy Oliver play like a flute to summon the Dragonzord?", opts: new Array("Power Sword", "Dragon Dagger", "Power Lance", "Saba"), ans: 1 },
+        { id: "m_m5", cat: "Soccer", q: "Which country won the 2022 FIFA Men's World Cup in a penalty shootout?", opts: new Array("France", "Brazil", "Argentina", "Germany"), ans: 2 },
+        { id: "m_m6", cat: "Misc Trivia", q: "What is the largest mammal on Earth?", opts: new Array("African Elephant", "Blue Whale", "Giraffe", "Colossal Squid"), ans: 1 },
+        { id: "m_m7", cat: "Minecraft", q: "What happens if you look an Enderman directly in the eyes without a carved pumpkin?", opts: new Array("It teleports away", "It gets angry and attacks", "It drops an Ender Pearl", "It falls asleep"), ans: 1 },
+        { id: "m_m8", cat: "Roblox", q: "In Roblox Doors, what should you do when the lights flicker and Rush approaches?", opts: new Array("Jump repeatedly", "Hide in a closet or bed", "Look at the floor", "Run toward it"), ans: 1 },
+        { id: "m_m9", cat: "Soccer", q: "What is it called when a single player scores three goals in one soccer game?", opts: new Array("Triple Play", "Hat-trick", "Clean Sheet", "Brace"), ans: 1 },
+        { id: "m_m10", cat: "Mighty Morphin Power Rangers", q: "Who is the main space witch villain who escapes from a dumpster on the Moon in Episode 1?", opts: new Array("Divatox", "Rita Repulsa", "Astronema", "Scorpina"), ans: 1 }
+      ),
+      hard: new Array(
+        { id: "m_h1", cat: "Mighty Morphin Power Rangers", q: "What is the name of the city where the original Mighty Morphin Power Rangers live?", opts: new Array("Angel Grove", "Reefside", "Silver Hills", "Mariner Bay"), ans: 0 },
+        { id: "m_h2", cat: "KPop Demon Hunters", q: "What is the name of the ancient demon king who sends the Saja Boys to steal fans' souls?", opts: new Array("Gwi-Ma", "Jinu", "Bobby", "Healer Han"), ans: 0 },
+        { id: "m_h3", cat: "Brain Teaser Math", q: "If 5 machines take 5 minutes to make 5 widgets, how long do 100 machines take to make 100 widgets?", opts: new Array("100 minutes", "20 minutes", "5 minutes", "1 minute"), ans: 2 },
+        { id: "m_h4", cat: "Mighty Morphin Power Rangers", q: "Which Power Ranger color did Tommy Oliver become AFTER losing his Green Ranger powers?", opts: new Array("Blue Ranger", "White Ranger", "Gold Ranger", "Silver Ranger"), ans: 1 },
+        { id: "m_h5", cat: "Misc Trivia", q: "Which element on the periodic table has the chemical symbol 'Fe'?", opts: new Array("Fluorine", "Iron", "Lead", "Silver"), ans: 1 },
+        { id: "m_h6", cat: "Soccer", q: "Who holds the all-time record for the most goals scored in FIFA Men's World Cup history with 16 goals?", opts: new Array("Pele", "Lionel Messi", "Miroslav Klose", "Ronaldo Nazario"), ans: 2 },
+        { id: "m_h7", cat: "Brain Teaser Math", q: "Multiply all the numbers on a standard telephone keypad, 0 through 9. What is the answer?", opts: new Array("362,880", "45", "0", "3,628,800"), ans: 2 },
+        { id: "m_h8", cat: "Minecraft", q: "What item do you brew with Blaze Powder and Nether Wart to make a Potion of Fire Resistance?", opts: new Array("Magma Cream", "Ghast Tear", "Golden Carrot", "Spider Eye"), ans: 0 },
+        { id: "m_h9", cat: "Mighty Morphin Power Rangers", q: "What is the name of the talking white tiger saber weapon used by the White Ranger?", opts: new Array("Saba", "Zeo", "Alpha", "Raja"), ans: 0 },
+        { id: "m_h10", cat: "Misc Trivia", q: "Which planet in our solar system spins backward compared to most other planets?", opts: new Array("Mars", "Venus", "Mercury", "Neptune"), ans: 1 }
+      )
+    }
+  },
+  {
+    id: 'karsyn', name: 'Karsyn', age: 15,
+    rung: 0, safeRung: -1, bestCash: "$0", correctCount: 0,
+    lifelines: { f5050: true, sibling: true, poll: true },
+    usedIds: new Array(),
+    ffPuzzle: {
+      prompt: "Put these social media platforms in order from EARLIEST launch to LATEST:",
+      items: new Array("YouTube", "Instagram", "Snapchat", "TikTok"),
+      correctOrder: new Array("YouTube", "Instagram", "Snapchat", "TikTok")
+    },
+    tiers: {
+      easy: new Array(
+        { id: "s_e1", cat: "Driver's Ed", q: "What shape is a standard traffic STOP sign?", opts: new Array("Hexagon", "Octagon", "Pentagon", "Diamond"), ans: 1 },
+        { id: "s_e2", cat: "Stranger Things", q: "What is Eleven's favorite frozen breakfast food in Season 1?", opts: new Array("Pop-Tarts", "Eggo Waffles", "Toaster Strudel", "Pancakes"), ans: 1 },
+        { id: "s_e3", cat: "TikTok & Social", q: "On TikTok, what does 'FYP' stand for?", opts: new Array("Find Your Friends", "For You Page", "Follow Your Posts", "Featured Youth Picks"), ans: 1 },
+        { id: "s_e4", cat: "Driver's Ed", q: "What color are road signs that warn drivers of upcoming hazards like sharp curves?", opts: new Array("Orange", "Yellow", "Green", "Blue"), ans: 1 },
+        { id: "s_e5", cat: "High School Subjects", q: "Which organelle is known as the 'powerhouse of the cell'?", opts: new Array("Nucleus", "Ribosome", "Mitochondria", "Golgi apparatus"), ans: 2 },
+        { id: "s_e6", cat: "Misc Trivia", q: "What is the capital city of Japan?", opts: new Array("Seoul", "Beijing", "Tokyo", "Kyoto"), ans: 2 },
+        { id: "s_e7", cat: "Jujutsu Kaisen", q: "What is the name of Satoru Gojo's Domain Expansion?", opts: new Array("Malevolent Shrine", "Unlimited Void", "Coffin of the Iron Mountain", "Chimera Shadow Garden"), ans: 1 },
+        { id: "s_e8", cat: "Stranger Things", q: "What is the name of the D&D club Eddie Munson leads at Hawkins High?", opts: new Array("The Mind Flayers", "The Hellfire Club", "The Demogorgons", "The Upside Downers"), ans: 1 },
+        { id: "s_e9", cat: "Driver's Ed", q: "When approaching a flashing RED traffic light at an intersection, what must you do?", opts: new Array("Slow down with caution", "Come to a complete stop and yield", "Speed up to clear it", "Treat it like green"), ans: 1 },
+        { id: "s_e10", cat: "Misc Trivia", q: "How many strings does a standard acoustic guitar have?", opts: new Array("4", "5", "6", "7"), ans: 2 }
+      ),
+      medium: new Array(
+        { id: "s_m1", cat: "Driver's Ed", q: "At a four-way stop, if two vehicles arrive at the exact same time, who has the right-of-way?", opts: new Array("The vehicle on the left", "The vehicle on the right", "The larger vehicle", "Whoever flashes lights first"), ans: 1 },
+        { id: "s_m2", cat: "Jujutsu Kaisen", q: "How many total fingers does Ryomen Sukuna have?", opts: new Array("10", "15", "20", "24"), ans: 2 },
+        { id: "s_m3", cat: "Stranger Things", q: "Which Kate Bush song saves Max Mayfield from Vecna in Season 4?", opts: new Array("Wuthering Heights", "Running Up That Hill", "Babooshka", "Cloudbusting"), ans: 1 },
+        { id: "s_m4", cat: "Brain Teaser Math", q: "A lily pad doubles in size daily and covers a lake in 48 days. On what day does it cover HALF the lake?", opts: new Array("Day 24", "Day 36", "Day 47", "Day 46"), ans: 2 },
+        { id: "s_m5", cat: "Driver's Ed", q: "Under normal dry driving conditions, what is the minimum recommended following distance?", opts: new Array("1 second", "3 seconds", "10 seconds", "Half a car length"), ans: 1 },
+        { id: "s_m6", cat: "Misc Trivia", q: "Which artist painted the famous ceiling of the Sistine Chapel?", opts: new Array("Leonardo da Vinci", "Michelangelo", "Raphael", "Donatello"), ans: 1 },
+        { id: "s_m7", cat: "Teen Riddle", q: "What five-letter word becomes shorter when you add two letters to it?", opts: new Array("Small", "Short", "Brief", "Quick"), ans: 1 },
+        { id: "s_m8", cat: "TikTok & Social", q: "If someone is 'aura farming' online, what are they trying to do?", opts: new Array("Deliberately look cool or mysterious", "Grow virtual crops", "Buy fake followers", "Argue in comments"), ans: 0 },
+        { id: "s_m9", cat: "High School Subjects", q: "In chemistry, what is the chemical symbol for gold?", opts: new Array("Gd", "Go", "Au", "Ag"), ans: 2 },
+        { id: "s_m10", cat: "Jujutsu Kaisen", q: "What cursed technique does Megumi Fushiguro inherit from the Zenin clan?", opts: new Array("Boogie Woogie", "Ten Shadows Technique", "Ratio Technique", "Cursed Speech"), ans: 1 }
+      ),
+      hard: new Array(
+        { id: "s_h1", cat: "Driver's Ed", q: "What does a flashing YELLOW arrow in a left-turn lane mean?", opts: new Array("Protected turn only", "Yield to oncoming traffic and pedestrians, then turn", "Stop and wait for green", "Lane is closed"), ans: 1 },
+        { id: "s_h2", cat: "Jujutsu Kaisen", q: "What is the name of Hakari Kinji's Domain Expansion?", opts: new Array("Idle Death Gamble", "Deadly Sentencing", "Time Cell Moon Palace", "Authentic Mutual Love"), ans: 0 },
+        { id: "s_h3", cat: "Stranger Things", q: "What is the exact number tattooed on Eleven's wrist?", opts: new Array("001", "008", "011", "110"), ans: 2 },
+        { id: "s_h4", cat: "High School Subjects", q: "In chemistry, what is the only metal that is liquid at standard room temperature?", opts: new Array("Gallium", "Mercury", "Sodium", "Bromine"), ans: 1 },
+        { id: "s_h5", cat: "Misc Trivia", q: "In which year did the Berlin Wall fall?", opts: new Array("1985", "1987", "1989", "1991"), ans: 2 },
+        { id: "s_h6", cat: "Brain Teaser Math", q: "What is the probability of flipping a fair coin 3 times and getting Heads all 3 times?", opts: new Array("1 in 3", "1 in 6", "1 in 8", "1 in 9"), ans: 2 },
+        { id: "s_h7", cat: "High School Subjects", q: "Who wrote the dystopian novel '1984'?", opts: new Array("Aldous Huxley", "George Orwell", "Ray Bradbury", "William Golding"), ans: 1 },
+        { id: "s_h8", cat: "Driver's Ed", q: "What does a solid yellow line on your side of the center line mean?", opts: new Array("Passing allowed anytime", "No passing allowed", "Lane ends ahead", "Carpool lane only"), ans: 1 },
+        { id: "s_h9", cat: "Jujutsu Kaisen", q: "What is the name of Ryomen Sukuna's Domain Expansion?", opts: new Array("Idle Death Gamble", "Malevolent Shrine", "Self-Embodiment of Perfection", "Horizon of Skandha"), ans: 1 },
+        { id: "s_h10", cat: "Misc Trivia", q: "Which country is home to the world's largest desert outside the polar regions?", opts: new Array("Australia", "Algeria - Sahara", "Saudi Arabia", "Mongolia"), ans: 1 }
+      )
+    }
+  }
+);
+let phase = 'FF';
+let ffIndex = 0;
+let ffStartTime = 0;
+let ffInterval = null;
+let ffUserSeq = new Array();
+let ffResults = new Array();
+
+let activePlayerIdx = 0;
+let currentQ = null;
+let timeLeft = 20;
+let timerInterval = null;
+let isPaused = false;
+let inputLocked = false;
+
+function renderScoreboard() {
+  const sb = document.getElementById('scoreboard');
+  sb.innerHTML = PLAYERS.map((p, idx) => {
+    const isActive = (phase === 'HOTSEAT' && idx === activePlayerIdx) || (phase === 'FF' && idx === ffIndex);
+    const currentCash = p.rung > 0 ? LADDER.at(p.rung - 1) : "$0";
+    const safeCash = p.safeRung >= 0 ? LADDER.at(p.safeRung) : "$0";
+    return `
+      <div class="player-card ${isActive ? 'active' : ''}">
+        <span class="hot-badge">${phase === 'FF' ? 'FASTEST FINGER' : 'IN HOT SEAT'}</span>
+        <div class="p-name">${p.name} <span style="font-size:0.8rem; color:#94a3b8;">Age ${p.age}</span></div>
+        <div class="p-stats">
+          <span>Current: <span class="p-money">${currentCash}</span></span>
+          <span>Safe: <span class="p-safe">${safeCash}</span></span>
+          <span>Best: <strong>${p.bestCash}</strong></span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function startFFTurn() {
+  phase = 'FF';
+  renderScoreboard();
+  const p = PLAYERS.at(ffIndex);
+  ffUserSeq = new Array();
+  document.getElementById('ffPlayerTitle').textContent = `${p.name}'s Turn - Age ${p.age}`;
+  document.getElementById('ffPrompt').textContent = p.ffPuzzle.prompt;
+  document.getElementById('ffSeq').innerHTML = '';
+
+  const shuffled = p.ffPuzzle.items.slice().sort(() => Math.random() - 0.5);
+  const optContainer = document.getElementById('ffOptions');
+  optContainer.innerHTML = shuffled.map(item => `
+    <button class="ff-btn" onclick="pickFFItem(this, '${item.replace(/'/g, "\\'")}')">${item}</button>
+  `).join('');
+
+  ffStartTime = performance.now();
+  clearInterval(ffInterval);
+  ffInterval = setInterval(() => {
+    if (!isPaused) {
+      const elapsed = ((performance.now() - ffStartTime) / 1000).toFixed(1);
+      document.getElementById('ffTimer').textContent = `${elapsed}s`;
+    }
+  }, 100);
+}
+
+function pickFFItem(btn, item) {
+  if (isPaused) return;
+  SFX.tick();
+  btn.disabled = true;
+  ffUserSeq.push(item);
+  const pill = document.createElement('span');
+  pill.className = 'seq-pill';
+  pill.textContent = `${ffUserSeq.length}. ${item}`;
+  document.getElementById('ffSeq').appendChild(pill);
+
+  if (ffUserSeq.length === 4) {
+    clearInterval(ffInterval);
+    const timeTaken = parseFloat(((performance.now() - ffStartTime) / 1000).toFixed(2));
+    const correctOrder = PLAYERS.at(ffIndex).ffPuzzle.correctOrder;
+    let score = 0;
+    ffUserSeq.forEach((val, i) => { if (val === correctOrder.at(i)) score++; });
+    ffResults.push({ idx: ffIndex, name: PLAYERS.at(ffIndex).name, score, time: timeTaken });
+
+    setTimeout(() => {
+      ffIndex++;
+      if (ffIndex < PLAYERS.length) {
+        startFFTurn();
+      } else {
+        finishFastestFinger();
+      }
+    }, 600);
+  }
+}
+
+function resetFFChoice() {
+  if (isPaused) return;
+  ffUserSeq = new Array();
+  document.getElementById('ffSeq').innerHTML = '';
+  document.querySelectorAll('.ff-btn').forEach(b => b.disabled = false);
+}
+
+function finishFastestFinger() {
+  ffResults.sort((a, b) => b.score - a.score || a.time - b.time);
+  const winner = ffResults.at(0);
+  activePlayerIdx = winner.idx;
+
+  const summary = ffResults.map((r, i) => `<p style="margin:6px 0;"><strong>#${i+1} ${r.name}:</strong> ${r.score}/4 right in ${r.time}s</p>`).join('');
+  openModal("⚡ Fastest Finger Results!", `${summary}<p style="margin-top:14px; color:#4ade80; font-weight:bold;">${winner.name} wins the first Hot Seat turn!</p>`);
+
+  document.getElementById('ffView').classList.add('hidden');
+  document.getElementById('hotSeatView').classList.remove('hidden');
+  phase = 'HOTSEAT';
+  loadHotSeatQuestion();
+}
+
+function renderLadder() {
+  const p = PLAYERS.at(activePlayerIdx);
+  const el = document.getElementById('prizeLadder');
+  el.innerHTML = LADDER.map((amt, i) => {
+    let cls = 'rung';
+    if (SAFE_RUNGS.includes(i)) cls += ' safe';
+    if (i === p.rung) cls += ' current';
+    else if (i < p.rung) cls += ' passed';
+    return `<div class="${cls}"><span>${i + 1}</span><span>${amt}</span></div>`;
+  }).join('');
+}
+function loadHotSeatQuestion() {
+  inputLocked = false;
+  const p = PLAYERS.at(activePlayerIdx);
+  renderScoreboard();
+  renderLadder();
+
+  document.getElementById('life5050').disabled = !p.lifelines.f5050;
+  document.getElementById('lifeSibling').disabled = !p.lifelines.sibling;
+  document.getElementById('lifePoll').disabled = !p.lifelines.poll;
+
+  let pool = p.tiers.easy;
+  let tierLabel = 'EASY';
+  if (p.rung >= 5 && p.rung < 10) {
+    pool = p.tiers.medium;
+    tierLabel = 'MEDIUM';
+  } else if (p.rung >= 10) {
+    pool = p.tiers.hard;
+    tierLabel = 'HARD';
+  }
+
+  let available = pool.filter(item => !p.usedIds.includes(item.id));
+  if (available.length === 0) {
+    p.usedIds = p.usedIds.filter(id => !pool.some(item => item.id === id));
+    available = pool;
+  }
+
+  currentQ = available.at(Math.floor(Math.random() * available.length));
+  p.usedIds.push(currentQ.id);
+
+  document.getElementById('qTopic').textContent = `${p.name} • ${tierLabel} • ${currentQ.cat}`;
+  document.getElementById('questionText').textContent = currentQ.q;
+  document.getElementById('feedbackMsg').textContent = '';
+
+  const letters = new Array('A', 'B', 'C', 'D');
+  document.getElementById('answersGrid').innerHTML = currentQ.opts.map((opt, i) => `
+    <button class="ans-btn" id="optBtn${i}" onclick="submitAnswer(${i})">
+      <span class="letter">${letters.at(i)}:</span> <span>${opt}</span>
+    </button>
+  `).join('');
+
+  startShotClock();
+}
+
+function startShotClock() {
+  clearInterval(timerInterval);
+  timeLeft = 20;
+  updateClockUI();
+  timerInterval = setInterval(() => {
+    if (!isPaused && !inputLocked) {
+      timeLeft--;
+      updateClockUI();
+      if (timeLeft <= 5 && timeLeft > 0) SFX.tick();
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        handleWrongOrTimeout("⏰ Time's up!");
+      }
+    }
+  }, 1000);
+}
+
+function updateClockUI() {
+  const clock = document.getElementById('shotClock');
+  clock.textContent = `${timeLeft}s`;
+  clock.classList.toggle('danger', timeLeft <= 5);
+}
+
+function submitAnswer(chosenIdx) {
+  if (inputLocked || isPaused) return;
+  inputLocked = true;
+  clearInterval(timerInterval);
+
+  const p = PLAYERS.at(activePlayerIdx);
+  const buttons = document.querySelectorAll('.ans-btn');
+  buttons.forEach(b => b.disabled = true);
+
+  if (chosenIdx === currentQ.ans) {
+    buttons.item(chosenIdx).classList.add('correct');
+    p.correctCount++;
+    p.rung++;
+
+    const wonAmount = LADDER.at(p.rung - 1);
+    const currentBestIdx = LADDER.indexOf(p.bestCash);
+    if (p.rung - 1 > currentBestIdx) p.bestCash = wonAmount;
+    if (SAFE_RUNGS.includes(p.rung - 1)) p.safeRung = p.rung - 1;
+
+    renderScoreboard();
+    renderLadder();
+
+    if (p.rung >= LADDER.length) {
+      SFX.winMillion();
+      document.getElementById('feedbackMsg').textContent = `🎉 ${p.name} WON $1,000,000! 🎉`;
+      setTimeout(() => {
+        p.rung = 0;
+        p.safeRung = -1;
+        p.lifelines = { f5050: true, sibling: true, poll: true };
+        rotateTurn();
+      }, 3000);
+    } else {
+      SFX.correct();
+      document.getElementById('feedbackMsg').textContent = `✅ Correct! Moving up to ${LADDER.at(p.rung)}!`;
+      setTimeout(loadHotSeatQuestion, 1600);
+    }
+  } else {
+    buttons.item(chosenIdx).classList.add('wrong');
+    handleWrongOrTimeout("❌ Wrong answer!");
+  }
+}
+
+function handleWrongOrTimeout(reason) {
+  inputLocked = true;
+  SFX.wrong();
+  document.querySelectorAll('.ans-btn').forEach(b => b.disabled = true);
+  document.getElementById(`optBtn${currentQ.ans}`).classList.add('correct');
+
+  const p = PLAYERS.at(activePlayerIdx);
+  const dropRung = p.safeRung >= 0 ? p.safeRung + 1 : 0;
+  const safeText = p.safeRung >= 0 ? `Safe Haven: ${LADDER.at(p.safeRung)}` : "$0";
+  document.getElementById('feedbackMsg').textContent = `${reason} ${p.name} drops back to ${safeText}. Passing Hot Seat!`;
+
+  p.rung = dropRung;
+  p.lifelines = { f5050: true, sibling: true, poll: true };
+
+  setTimeout(rotateTurn, 2500);
+}
+
+function rotateTurn() {
+  activePlayerIdx = (activePlayerIdx + 1) % PLAYERS.length;
+  loadHotSeatQuestion();
+}
+
+function use5050() {
+  const p = PLAYERS.at(activePlayerIdx);
+  if (!p.lifelines.f5050 || inputLocked || isPaused) return;
+  p.lifelines.f5050 = false;
+  document.getElementById('life5050').disabled = true;
+  SFX.lifeline();
+
+  const wrongIndices = new Array(0, 1, 2, 3).filter(i => i !== currentQ.ans).sort(() => Math.random() - 0.5);
+  document.getElementById(`optBtn${wrongIndices.at(0)}`).classList.add('hidden-opt');
+  document.getElementById(`optBtn${wrongIndices.at(1)}`).classList.add('hidden-opt');
+}
+
+function useSibling() {
+  const p = PLAYERS.at(activePlayerIdx);
+  if (!p.lifelines.sibling || inputLocked || isPaused) return;
+  p.lifelines.sibling = false;
+  document.getElementById('lifeSibling').disabled = true;
+  SFX.lifeline();
+
+  isPaused = true;
+  openModal("🗣️ Ask a Sibling!", `<p>Timer paused! <strong>${p.name}</strong> has 30 seconds to ask a sibling for advice on this question.</p>`);
+}
+
+function usePoll() {
+  const p = PLAYERS.at(activePlayerIdx);
+  if (!p.lifelines.poll || inputLocked || isPaused) return;
+  p.lifelines.poll = false;
+  document.getElementById('lifePoll').disabled = true;
+  SFX.lifeline();
+
+  isPaused = true;
+  const pcts = new Array(12, 11, 12, 12);
+  pcts.splice(currentQ.ans, 1, 65);
+  const letters = new Array('A', 'B', 'C', 'D');
+  const bars = pcts.map((val, i) => `
+    <div class="bar-col">
+      <span style="font-size:0.85rem; margin-bottom:4px;">${val}%</span>
+      <div class="bar-fill" style="height:${val * 1.6}px;"></div>
+      <strong style="margin-top:6px;">${letters.at(i)}</strong>
+    </div>
+  `).join('');
+
+  openModal("📊 Poll the Family", `<div class="poll-bars">${bars}</div>`);
+}
+
+function togglePause() {
+  if (!document.getElementById('infoModal').classList.contains('hidden')) return;
+  isPaused = !isPaused;
+  document.getElementById('pauseOverlay').classList.toggle('hidden', !isPaused);
+  document.getElementById('pauseBtn').textContent = isPaused ? '▶ Resume' : '⏸ Pause';
+}
+
+function openModal(title, html) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('infoModal').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('infoModal').classList.add('hidden');
+  isPaused = false;
+}
+
+function showStandings() {
+  if (phase === 'HOTSEAT') isPaused = true;
+  const sorted = PLAYERS.slice().sort((a, b) => LADDER.indexOf(b.bestCash) - LADDER.indexOf(a.bestCash) || b.correctCount - a.correctCount);
+  const rows = sorted.map((p, i) => `
+    <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #334155;">
+      <span><strong>#${i+1} ${p.name}</strong> - ${p.correctCount} right</span>
+      <span style="color:#4ade80; font-weight:bold;">Best: ${p.bestCash}</span>
+    </div>
+  `).join('');
+  openModal("🏆 Family Leaderboard", rows);
+}
+
+startFFTurn();
+</script>
+</body>
+</html>
